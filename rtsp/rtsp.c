@@ -18,7 +18,6 @@
 #include <ev.h>
 
 #include "rtsp.h"
-#include "xlog.h"
 
 #define MAXLEN 1023
 #define PORT 8003
@@ -26,32 +25,36 @@
 #define ADDR_IP "192.168.21.201"
 #define ADDR_HOST "bnc_video"
 #define ADDR_PORT "9003"
-#define ilog(a,b,...)
+
+struct ev_loop *rtsp_loop;
 
 int socket_init();
 void accept_callback(struct ev_loop *loop, ev_io *w, int revents);
 void recv_callback(struct ev_loop *loop, ev_io *w, int revents);
 void write_callback(struct ev_loop *loop, ev_io *w, int revents);
+void rtsp_client_incoming_cb(struct ev_loop *loop, ev_io *w, int revents);
 
 int rtsp_bind_addr(struct addrinfo *addr)
 {
 	struct sockaddr_in *rtsp_addr;
+	ev_io *io;
 
 	rtsp_addr=  (struct sockaddr_in *)addr->ai_addr;
-	int listener;
-	if ((listener = socket(AF_INET, SOCK_STREAM, 0)) == -1){
+	int rtsp_sock;
+	if ((rtsp_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1){
 		perror("socket create error");
 		exit(1);
 	} 
 	else{
 		xlog(LOG_INF, "socket create success!");
 	}
-	//setnonblocking(listener);
+	//setnonblocking(rtsp_sock);
 	int so_reuseaddr= 1;
-	setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&so_reuseaddr,sizeof(so_reuseaddr));
+	if(setsockopt(rtsp_sock, SOL_SOCKET,SO_REUSEADDR,&so_reuseaddr,sizeof(so_reuseaddr))< 0)
+		goto open_error;
 
 	/* Bind */
-	if (bind(listener, (struct sockaddr *)rtsp_addr, sizeof(struct sockaddr))== -1){
+	if (bind(rtsp_sock, (struct sockaddr *)rtsp_addr, sizeof(struct sockaddr))== -1){
 		xlog(LOG_ERR, "bind error!");
 		exit(1);
 	}
@@ -60,14 +63,28 @@ int rtsp_bind_addr(struct addrinfo *addr)
 	}
 
 	/* Listen */
-	if (listen(listener, 1024) == -1){
+	if (listen(rtsp_sock, 1024) == -1){
 		xlog(LOG_ERR, "listen error!");
 		exit(1);
 	} 
 	else{
 		xlog(LOG_ERR, "LISTEN SUCCESS,PORT:%s",ADDR_PORT);
 	}
-	return listener;	
+
+	rtsp_socket_listener *listener;
+	listener= g_slice_new0(rtsp_socket_listener);
+	listener->fd= rtsp_sock;
+	io= &listener->io;
+
+	io->data= listener;
+	ev_io_init(io, rtsp_client_incoming_cb, rtsp_sock, EV_READ);
+	ev_io_start(rtsp_loop, io);
+
+	return true;
+
+open_error:
+	close(rtsp_sock);
+	return false;
 }
 
 int rtsp_bind_sockets()
@@ -141,27 +158,21 @@ void recv_callback(struct ev_loop *loop, ev_io *w, int revents)
 	//ev_io write_event;
 loop:
 	ret=recv(w->fd,buffer,MAXLEN,0);
-	if(ret > 0)
-	{
+	if(ret > 0){
 		xlog(LOG_ERR, "recv message :%s  ",buffer);
-
 	}
-	else if(ret ==0)
-	{
+	else if(ret ==0){
 		xlog(LOG_ERR, "remote socket closed!socket fd: %d",w->fd);
 		close(w->fd);
 		ev_io_stop(loop, w);
 		free(w);
 		return;
 	}
-	else
-	{
-		if(errno == EAGAIN ||errno == EWOULDBLOCK)
-		{
+	else{
+		if(errno == EAGAIN ||errno == EWOULDBLOCK){
 			goto loop;
 		}
-		else
-		{
+		else{
 			xlog(LOG_ERR, "ret :%d ,close socket fd : %d",ret,w->fd);
 			close(w->fd);
 			ev_io_stop(loop, w);
@@ -192,7 +203,10 @@ void write_callback(struct ev_loop *loop, ev_io *w, int revents)
 int main(int argc ,char** argv)
 {
 	int listen;
+
+	rtsp_loop= ev_default_loop(0);
 	rtsp_bind_sockets();
+	ev_loop(rtsp_loop, 0);
 	// ev_io ev_io_watcher;
 	// listen=socket_init();
 	// struct ev_loop *loop = ev_loop_new(EVBACKEND_EPOLL);

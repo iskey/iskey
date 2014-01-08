@@ -5,15 +5,19 @@ CFLAGS:= $(CFLAGS) -g
 CFLAGS:= $(CFLAGS) `pkg-config --libs --cflags glib-2.0`
 
 TARGET_C=$(wildcard *.c)
-#TARGET_O=$(subst .c,.o,$(TARGET_C))
+TARGET_O=$(patsubst %.c,%.o,$(TARGET_C))
 #TARGET=$(subst .c,,$(TARGET_C))
 TARGET=$(patsubst %.c,%,$(TARGET_C))
 
-all: $(TARGET)
+all: rtsp_server
 
-$(TARGET):%:%.c
-	$(CC) -o $@ $< $(CFLAGS)
+rtsp_server:$(TARGET_O)
+	$(CC) -o $@ $^ $(CFLAGS)
 
+$(TARGET_O):%.o:%.c
+	$(CC) -c $< $(CFLAGS)
+	
 .PHONY : clean
 clean:
-	@rm -fvr $(TARGET)
+	@rm -fvr $(TARGET_O)
+	@rm -fvr rtsp_server
