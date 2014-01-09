@@ -14,4 +14,6 @@ typedef struct rtsp_socket_listener{
 
 extern void rtsp_client_incoming_cb(struct ev_loop *loop, ev_io *w, int revents);
 
+extern int rtsp_bind_sockets();
+
 #endif //End of __RTSP_SERVER__H
