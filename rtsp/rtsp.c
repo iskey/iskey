@@ -18,21 +18,20 @@
 #include <ev.h>
 
 #include "rtsp.h"
+#include "glib.h"
 
 #define MAXLEN 1023
-#define PORT 8003
-//#define ADDR_IP "127.0.0.1"
-#define ADDR_IP "192.168.21.201"
-#define ADDR_HOST "bnc_video"
-#define ADDR_PORT "9003"
+
+/**
+ * @brief Version string to use to report feng's signature
+ */
+const char feng_signature[] = "v1.0.2";
 
 struct ev_loop *rtsp_loop;
 
-int socket_init();
 void accept_callback(struct ev_loop *loop, ev_io *w, int revents);
 void recv_callback(struct ev_loop *loop, ev_io *w, int revents);
 void write_callback(struct ev_loop *loop, ev_io *w, int revents);
-void rtsp_client_incoming_cb(struct ev_loop *loop, ev_io *w, int revents);
 
 void accept_callback(struct ev_loop *loop, ev_io *w, int revents)
 {
@@ -42,10 +41,10 @@ void accept_callback(struct ev_loop *loop, ev_io *w, int revents)
 	ev_io* accept_watcher=malloc(sizeof(ev_io));
 	while ((newfd = accept(w->fd, (struct sockaddr *)&sin, &addrlen)) < 0)
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK) 
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
 		{
 			//these are transient, so don't log anything.
-			continue; 
+			continue;
 		}
 		else
 		{
@@ -56,7 +55,6 @@ void accept_callback(struct ev_loop *loop, ev_io *w, int revents)
 	ev_io_init(accept_watcher,recv_callback,newfd,EV_READ);
 	ev_io_start(loop,accept_watcher);
 	xlog(LOG_ERR, "accept callback : fd :%d",accept_watcher->fd);
-
 }
 
 void recv_callback(struct ev_loop *loop, ev_io *w, int revents)
@@ -110,16 +108,21 @@ void write_callback(struct ev_loop *loop, ev_io *w, int revents)
 
 int main(int argc ,char** argv)
 {
+    if(!g_thread_supported()) g_thread_init(NULL);
+
 	int listen;
 
 	rtsp_loop= ev_default_loop(0);
 	rtsp_bind_sockets();
+
+	clients_init();
+
 	ev_loop(rtsp_loop, 0);
 	// ev_io ev_io_watcher;
 	// listen=socket_init();
 	// struct ev_loop *loop = ev_loop_new(EVBACKEND_EPOLL);
 	// ev_io_init(&ev_io_watcher, accept_callback,listen, EV_READ);
-	// ev_io_start(loop,&ev_io_watcher); 
+	// ev_io_start(loop,&ev_io_watcher);
 	// ev_loop(loop,0);
 	// ev_loop_destroy(loop);
 	return 0;
