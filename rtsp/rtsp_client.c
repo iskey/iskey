@@ -158,6 +158,7 @@ static void client_ev_timeout(struct ev_loop *loop, ev_timer *w,
 static void client_loop(gpointer client_p, ATTR_UNUSED gpointer user_data)
 {
     RTSP_Client *client = (RTSP_Client *)client_p;
+    xlog(LOG_DBG, "get in client_loop() thread.\n");
 
     struct ev_loop *loop = client->loop;
     ev_io *io_write_p = &client->ev_io_write, io_read = { .data = client };
@@ -247,8 +248,9 @@ void clients_init()
 void rtsp_client_incoming_cb(struct ev_loop *loop, ev_io *w, int revents)
 {
 	xlog(LOG_DBG, "incoming.");
-	int client_sd= -1;
+	int client_sd= -1, sock_proto;
 	rtsp_socket_listener *listen= w->data;
+	RTSP_Client *rtsp;
 
 	struct sockaddr_storage peer, bound;
 	socklen_t peer_len= sizeof(struct sockaddr_storage), bound_len= sizeof(struct sockaddr_storage);
@@ -263,9 +265,46 @@ void rtsp_client_incoming_cb(struct ev_loop *loop, ev_io *w, int revents)
 		goto err;
 	}
 
-	//ev_io_stop(loop, w);
+#if ENABLE_SCTP
+#else
+    sock_proto= IPPROTO_TCP;
+#endif
 
-	return;
+	//ev_io_stop(loop, w);
+	xlog(LOG_INF, "Incoming connection accepted on socket: %d", client_sd);
+
+	rtsp= rtsp_client_new();
+	rtsp->sd= client_sd;
+
+	rtsp->loop= ev_loop_new(EVFLAG_AUTO);
+
+    switch(sock_proto)
+    {
+    case IPPROTO_TCP:
+        rtsp->socktype= RTSP_TCP;
+        rtsp->out_queue= g_queue_new();
+        rtsp->write_data= rtsp_write_data_queue;
+        break;
+#if ENABLE_SCTP
+    case IPPROTO_SCTP:
+        rtsp->socktype= RTSP_SCTP;
+        rtsp->write_data= rtsp_sctp_send_rtsp;
+        break;
+#endif
+    default:
+        xlog(LOG_ERR, "Invalid socket protocol: %d", sock_proto);
+    }
+
+    rtsp->local_host= neb_sa_get_host((struct sockaddr*)&bound);
+    rtsp->remote_host= neb_sa_get_host((struct sockaddr*)&peer);
+
+    rtsp->sa_len= peer_len;
+    rtsp->peer_sa= g_slice_copy(peer_len, &peer);
+    rtsp->local_sa= g_slice_copy(peer_len, &bound);
+
+    g_thread_pool_push(client_threads, rtsp, NULL);
+
+    return;
 err:
 	close(client_sd);
 	return;
