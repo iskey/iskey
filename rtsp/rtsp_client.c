@@ -246,7 +246,7 @@ void clients_init()
 
 void rtsp_client_incoming_cb(struct ev_loop *loop, ev_io *w, int revents)
 {
-	xlog(LOG_ERR, "incoming.");
+	xlog(LOG_DBG, "incoming.");
 	int client_sd= -1;
 	rtsp_socket_listener *listen= w->data;
 
