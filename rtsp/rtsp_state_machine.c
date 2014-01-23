@@ -389,6 +389,7 @@ void RTSP_handler(RTSP_Client * rtsp)
     gboolean ret;
 
     do {
+        xlog(LOG_DBG, "rtsp status enum value is %d", rtsp->status);
         switch(rtsp->status) {
         case RFC822_State_Begin:
             ret = RTSP_handle_new(rtsp);
@@ -426,6 +427,7 @@ void RTSP_handler(RTSP_Client * rtsp)
 //        [RFC822_State_HTTP_Idle] = HTTP_handle_idle
     };
 
+    xlog(LOG_DBG, "rtsp status enum value is %d", rtsp->status);
     while ( handlers[rtsp->status](rtsp) );
 #endif /* PIC */
 }

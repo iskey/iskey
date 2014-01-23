@@ -24,7 +24,7 @@
 //#define ADDR_IP "127.0.0.1"
 #define ADDR_IP "192.168.21.201"
 #define ADDR_HOST "bnc_video"
-#define ADDR_PORT "9003"
+#define ADDR_PORT "554"
 
 struct ev_loop *rtsp_loop;
 
@@ -38,7 +38,7 @@ int rtsp_bind_addr(struct addrinfo *addr)
 	if ((rtsp_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1){
 		perror("socket create error");
 		exit(1);
-	} 
+	}
 	else{
 		xlog(LOG_INF, "socket create success!");
 	}
@@ -60,7 +60,7 @@ int rtsp_bind_addr(struct addrinfo *addr)
 	if (listen(rtsp_sock, 1024) == -1){
 		xlog(LOG_ERR, "listen error!");
 		exit(1);
-	} 
+	}
 	else{
 		xlog(LOG_ERR, "LISTEN SUCCESS,PORT:%s",ADDR_PORT);
 	}
@@ -107,7 +107,7 @@ int rtsp_bind_sockets()
 		xlog(LOG_INF, "rtsp bind ip is %s", ip_print_buf);
 		if(!rtsp_bind_addr(it)){
 			goto error;
-		}	
+		}
 	}while((it= it->ai_next)!= NULL);
 
 	freeaddrinfo(rtsp_addrinfo);
