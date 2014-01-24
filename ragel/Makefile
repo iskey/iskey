@@ -1,10 +1,26 @@
 CC= gcc
 
-all: atoi.o
-	$(CC) -o atoi $<
+all:atoi params
 
+atoi: atoi.o
+	$(CC) -o $@ $<
+	
+#atoi.c:atoi.rl
+#	ragel -L $<	
+	
+params:params.o
+	$(CC) -o $@ $<
+
+%.c:%.rl
+	ragel -L $<	
+	
 %.o:%.c
 	$(CC) -c -o $@ $<
 
-atoi.c:atoi.rl
-	ragel -L $<
+
+.PHONY : clean
+clean:
+	@rm -fvr *.c
+	@rm -fvr *.o
+	@rm -fvr atoi
+	@rm -fvr params
