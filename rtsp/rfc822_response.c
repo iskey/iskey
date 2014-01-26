@@ -72,20 +72,6 @@ static char *http_timestamp() {
   return g_strdup(buffer);
 }
 
-const char *rfc822_header_to_string(RFC822_Header hdr)
-{
-    return "Need iskey to add.";
-}
-const char *rfc822_response_reason(RFC822_Protocol proto, int code)
-{
-    return "Need iskey to add.";
-}
-const char *rfc822_proto_to_string(RFC822_Protocol proto)
-{
-    return "Need iskey to add.";
-}
-
-
 /**
  * @brief Create a new RFC822_Response structure
  *
