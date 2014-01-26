@@ -10,6 +10,8 @@
 #include "xlog.h"
 #include "rfc822proto.h"
 
+#define DebugTrace printf
+
 #define ATTR_UNUSED
 
 extern const char feng_signature[];
@@ -229,6 +231,11 @@ void rtsp_write_data_queue(RTSP_Client *client, GByteArray *data);
 void rtsp_tcp_write_cb(struct ev_loop *, ev_io *, int);
 
 void rtsp_interleaved_receive(RTSP_Client *rtsp, int channel, uint8_t *data, size_t len);
+
+gboolean HTTP_handle_headers(RTSP_Client *rtsp);
+gboolean HTTP_handle_content(RTSP_Client *rtsp);
+gboolean HTTP_handle_idle(RTSP_Client *rtsp);
+void http_tunnel_initialise();
 
 #ifdef HAVE_JSON
 void stats_account_read(RTSP_Client *rtsp, size_t bytes);
