@@ -19,6 +19,7 @@
 
 #include "rtsp.h"
 #include "glib.h"
+#include "cfgparser/cfgparser.h"
 
 #define MAXLEN 1023
 
@@ -105,6 +106,12 @@ void write_callback(struct ev_loop *loop, ev_io *w, int revents)
 	ev_io_init(w,recv_callback,fd,EV_READ);
 	ev_io_start(loop,w);
 }
+
+GList *configured_vhosts;
+cfg_options_t feng_srv = {
+    /* set default here for pre-initialisation logs */
+    .log_level = LOG_WAR
+};
 
 int main(int argc ,char** argv)
 {

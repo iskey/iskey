@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "stdarg.h"
+#include <stdio.h>
 
 #define ENABLE_BLOG_FORCE 0
 
