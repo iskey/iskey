@@ -6,35 +6,60 @@
 #define true 1
 #define false 0
 
-%%{
-	machine iskey;
-	write data;
-}%%
+char comm_buf[300]= {0};
+
+void buffer(char cc)
+{
+	static flag= 0;
+	comm_buf[flag++]= cc;
+	printf("%c ", cc);
+}
 
 void iskey(char *str)
 {
 	char *p = str, *pe = str + strlen( str );
-	int cs, top, stack;
+	char *eof= pe;
+	int cs;
 	
 	%%{
-	action return { fret; }
-	action call_date { fcall date; }
-	action call_name { fcall name; }
-	# A parser for date strings.
-	date := [0-9][0-9] '/'
-			[0-9][0-9] '/'
-			[0-9][0-9][0-9][0-9] '\n' @return;
-	# A parser for name strings.
-	name := ( [a-zA-Z]+ | ' ' )** '\n' @return;
-	# The main parser.
-	headers =
-		( 'from' | 'to' ) ':' @call_name |
-		( 'departed' | 'arrived' ) ':' @call_date;
-	main := headers*;
+	machine iskey;
+	
+	action comm{
+		buffer(*fpc);
+	}
+	action hello{
+		printf("comment is %s\n", comm_buf);
+	}
+	
+	action hello1{
+		printf("start 1");
+	}
+	action hello2{
+		printf("start 2");
+		fbreak;
+	}
+	action hello3{
+		printf("start 3\n");
+	}
+	action hello4{
+		printf("start 4");
+	}
+	action hello5{
+		printf("start 5");
+	}
+	
+	comment= ('he'@hello1 :>> any* 'llo') @hello2;
+	comment1= ('he'@hello1 :> any* 'llo') @hello2;
+	comment2= ('he'@hello1 any* 'llo') @hello2;
+	
+	comment3= 'he'@hello1 :> (any* 'llo')>hello2;
+	comment4= 'he'@hello1 (any* 'llo')%hello2;
+	main= comment4 ' ';
+	
+	write data;
+	write init;
+	write exec;
 	}%%
-
-	%%write init;
-	%%write exec;
 
 };
 
@@ -48,3 +73,12 @@ int main()
 	}	
 	return 0;
 }
+
+
+//dot -Tpng out.dot -o out.png
+
+//test1
+//	comment= ('/*' any @comm)* '*/';
+//	comment1= '/*' ((any @comm)* - (any* '*/' any*)) '*/';
+//	commnet2= '/*' (any @comm)* :>> '*/';
+//	main= (comment)>hello1 >hello @hello2 $hello3 $hello %hello4;
